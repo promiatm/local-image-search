@@ -1,9 +1,11 @@
 from pathlib import Path
 
-from PySide6.QtCore import QDir, QSize, Qt, QUrl
+from PySide6.QtCore import QDir, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import QIcon, QImageReader, QPixmap
 from PySide6.QtWidgets import (
     QFileSystemModel,
+    QHBoxLayout,
+    QLabel,
     QListView,
     QListWidget,
     QListWidgetItem,
@@ -53,15 +55,25 @@ class FilesPage(QWidget):
         self.gallery.setSpacing(8)
         self.gallery.setWordWrap(True)
 
+        self.pending_images = []
+        self.load_timer = QTimer(self)
+        self.load_timer.timeout.connect(self.load_next_image)
+
+        self.directory_label = QLabel()
+        self.status_label = QLabel()
+
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(self.folder_tree)
         splitter.addWidget(self.gallery)
         splitter.setSizes([250, 750])
 
         layout = QVBoxLayout(self)
-        layout.addWidget(splitter)
+        header_layout = QHBoxLayout()
+        header_layout.addWidget(self.directory_label, stretch=1)
+        header_layout.addWidget(self.status_label)
 
-        self.load_images()
+        layout.addLayout(header_layout)
+        layout.addWidget(splitter, stretch=1)
 
     def select_directory(self, index):
         directory = Path(self.folder_model.filePath(index))
@@ -71,29 +83,68 @@ class FilesPage(QWidget):
             self.load_images()
 
     def load_images(self):
+        # Stop loading the previous folder
+        self.load_timer.stop()
+
         self.gallery.clear()
+        self.directory_label.setText(str(self.current_directory))
 
-        for path in self.current_directory.iterdir():
-            if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS:
+        self.pending_images = sorted(
+             (
+                  path
+                  for path in self.current_directory.iterdir()
+                  if path.is_file()
+                  and path.suffix.lower() in IMAGE_EXTENSIONS
+             ),
+             key=lambda path: path.name.lower(),
+             reverse=True,
+        )
 
-                reader = QImageReader(str(path))
-                original_size = reader.size()
+        total = len(self.pending_images)
+        self.status_label.setText(f"Loading 0 of {total} images")
 
-                if not original_size.isValid():
-                    continue
+        if total > 0:
+            self.load_timer.start(0)
+        else:
+            self.status_label.setText("0 images")
 
-                thumbnail_size = original_size.scaled(
-                    QSize(160, 120),
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                )
+    def load_next_image(self):
+        if not self.pending_images:
+            self.load_timer.stop()
+            self.status_label.setText(f"{self.gallery.count()} images")
+            return
 
-                reader.setScaledSize(thumbnail_size)
-                image = reader.read()
+        path = self.pending_images.pop()
 
-                if image.isNull():
-                    continue
+        reader = QImageReader(str(path))
+        original_size = reader.size()
 
-                thumbnail = QPixmap.fromImage(image)
+        if not original_size.isValid():
+            return
 
-                item = QListWidgetItem(QIcon(thumbnail), path.name)
-                self.gallery.addItem(item)
+        thumbnail_size = original_size.scaled(
+            QSize(160, 120),
+            Qt.AspectRatioMode.KeepAspectRatio,
+        )
+
+        reader.setScaledSize(thumbnail_size)
+        image = reader.read()
+
+        if image.isNull():
+            return
+
+        thumbnail = QPixmap.fromImage(image)
+
+        item = QListWidgetItem(QIcon(thumbnail), path.name)
+
+        item.setData(
+            Qt.ItemDataRole.UserRole,
+            str(path),
+        )
+
+        self.gallery.addItem(item)
+
+        loaded = self.gallery.count()
+        total = loaded + len(self.pending_images)
+
+        self.status_label.setText(f"Loading {loaded} of {total} images")
