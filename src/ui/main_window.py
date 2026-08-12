@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from ui.pages.home_page import HomePage
+from ui.pages.files_page import FilesPage
 
 class PlaceholderPage(QWidget):
     def __init__(self, title):
@@ -27,7 +28,7 @@ class PlaceholderPage(QWidget):
         layout.addWidget(label)
 
 class MainWindow(QMainWindow):
-    def __init__(self, image_directory: Path):
+    def __init__(self, data_directory: Path):
         super().__init__()
 
         self.setWindowTitle("Local Image Search")
@@ -74,7 +75,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(HomePage())
         self.pages.addWidget(PlaceholderPage("Search"))
         self.pages.addWidget(PlaceholderPage("People"))
-        self.pages.addWidget(PlaceholderPage("Files"))
+        self.pages.addWidget(FilesPage(data_directory))
         self.pages.addWidget(PlaceholderPage("Settings"))
 
         self.navigation.currentRowChanged.connect(

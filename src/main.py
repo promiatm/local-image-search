@@ -11,7 +11,7 @@ DATA_DIRECTORY = PROJECT_ROOT / "data"
 def main():
     app = QApplication()
 
-    window = MainWindow(image_directory=DATA_DIRECTORY)
+    window = MainWindow(data_directory=DATA_DIRECTORY)
     window.show()
 
     return app.exec()
