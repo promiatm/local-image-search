@@ -56,6 +56,8 @@ class FilesPage(QWidget):
         self.gallery.setWordWrap(True)
 
         self.pending_images = []
+        self.thumbnail_cache = {}
+
         self.load_timer = QTimer(self)
         self.load_timer.timeout.connect(self.load_next_image)
 
@@ -116,6 +118,18 @@ class FilesPage(QWidget):
 
         path = self.pending_images.pop()
 
+        modified_time = path.stat().st_mtime
+        cache_key = str(path)
+
+        cached = self.thumbnail_cache.get(cache_key)
+
+        if cached is not None:
+            cached_time, cached_thumbnail = cached
+
+            if cached_time == modified_time:
+                self.add_thumbnail(path, cached_thumbnail)
+                return
+
         reader = QImageReader(str(path))
         original_size = reader.size()
 
@@ -135,6 +149,14 @@ class FilesPage(QWidget):
 
         thumbnail = QPixmap.fromImage(image)
 
+        self.thumbnail_cache[cache_key] = (
+            modified_time,
+            thumbnail,
+        )
+
+        self.add_thumbnail(path, thumbnail)
+
+    def add_thumbnail(self, path: Path, thumbnail: QPixmap):
         item = QListWidgetItem(QIcon(thumbnail), path.name)
 
         item.setData(
