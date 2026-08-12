@@ -1,0 +1,25 @@
+# Virtual environment
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Downloaded model weights
+models/
+*.onnx
+*.pt
+*.pth
+*.safetensors
+*.engine
+
+# Generated indexes, metadata, local image collections
+data/
+indexes/
+*.db
+*.sqlite
+*.index

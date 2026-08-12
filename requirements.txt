@@ -1,0 +1,5 @@
+numpy
+opencv-python
+insightface
+onnxruntime-gpu==1.28.0
+tqdm
