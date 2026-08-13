@@ -4,3 +4,7 @@ insightface
 onnxruntime-gpu==1.28.0
 tqdm
 pyside6
+torch
+transformers
+pillow
+sentencepiece
